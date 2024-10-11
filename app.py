@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import speech_recognition as sr
 import torch
 import numpy as np
-from ultralytics import YOLO  # YOLOv11 import
+from ultralytics import YOLO  # YOLOv10 import
 from openai import OpenAI
 import pyttsx3
 
@@ -31,35 +31,33 @@ if not api_key:
     st.error("API key is not set in the environment variables.")
 
 # Function to convert speech to text using OpenAI Whisper API
-def speech_to_text(audio_data):
+# Function to convert speech to text using OpenAI Whisper API with a URL
+def speech_to_text_via_url(audio_url):
     headers = {
         "Authorization": f"Bearer {api_key}",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
     }
-    with open(audio_data, "rb") as audio_file:
-        files = {"file": audio_file}
-        response = requests.post(base_url, headers=headers, files=files)
 
-        if response.status_code == 200:
-            return response.json()["text"]
-        else:
-            st.error(f"Whisper API error: {response.status_code}")
-            return None
+    url = f"{base_url}/stt"  # Ensure this endpoint is correct
 
-# Function to capture voice input and convert to text
-def capture_voice():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.write("Listening for your question. Please speak now...")
-        audio = recognizer.listen(source)
+    data = {
+        "url": audio_url,  # Pass the URL of the audio file
+        "model": "#g1_whisper-large",  # Ensure the correct model name
+    }
 
-        try:
-            st.write("Processing your question...")
-            user_input = recognizer.recognize_google(audio)
-            return user_input
-        except sr.UnknownValueError:
-            st.error("Sorry, I could not understand the audio.")
-        except sr.RequestError as e:
-            st.error(f"Could not request results; {e}")
+    # Make a POST request to the STT API with the audio URL
+    response = requests.post(url, headers=headers, json=data)
+
+    # Handle response
+    if response.status_code >= 400:
+        st.error(f"Error: {response.status_code} - {response.text}")
+        return None
+    else:
+        response_data = response.json()
+        transcript = response_data["results"]["channels"][0]["alternatives"][0]["transcript"]
+        st.write("[transcription]", transcript)
+        return transcript
 
 # Text-to-Speech (Offline with pyttsx3)
 def text_to_speech_pyttsx3(text):
@@ -132,7 +130,7 @@ def analyze_objects(image1, image2, user_input):
     prompt = (
         f"Static objects detected: {static_summary}. "
         f"Dynamic objects detected: {dynamic_summary}. "
-        f"Within 100 words, briefly answer the blind user\'s question:{user_input}"
+        f"Within 100 words, briefly answer the blind user's question: {user_input}"
     )
 
     # Set up API call for OpenAI o1-mini chat completion
@@ -169,18 +167,26 @@ st.write("Real-Time Object Detection and Navigation App")
 uploaded_image_1 = st.file_uploader("Upload Image 1", type=["png", "jpg", "jpeg"])
 uploaded_image_2 = st.file_uploader("Upload Image 2", type=["png", "jpg", "jpeg"])
 
+# Input field for the URL to the audio file
+audio_url = st.text_input("Enter the URL of the audio file")
+
 if uploaded_image_1 and uploaded_image_2:
     image_1 = Image.open(uploaded_image_1)
     image_2 = Image.open(uploaded_image_2)
 
     st.image([image_1, image_2], caption=["Image 1", "Image 2"], use_column_width=True)
 
-    # Capture voice input for the question
-    if st.button("Ask Question"):
-        user_input = capture_voice()
-        if user_input:
-            st.write(f"Your question: {user_input}")
-            analysis = analyze_objects(image_1, image_2, user_input)
-            if analysis:
-                st.write(f"Analysis: {analysis}")
-                text_to_speech_pyttsx3(analysis)
+if audio_url:
+    user_input = speech_to_text_via_url(audio_url)
+
+    if user_input:
+        st.write(f"Your question: {user_input}")
+
+        # Analyze images based on the user's question
+        analysis = analyze_objects(image_1, image_2, user_input)
+
+        if analysis:
+            st.write(f"Analysis: {analysis}")
+            text_to_speech_pyttsx3(analysis)
+else:
+    st.error("Please enter an audio URL.")
