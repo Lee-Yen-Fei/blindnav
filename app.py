@@ -83,7 +83,6 @@ def create_video_from_images(image1, image2, output_path="output_video.mp4"):
     video.write(image2)
 
     video.release()
-    cv2.destroyAllWindows()
 
     return output_path
 
