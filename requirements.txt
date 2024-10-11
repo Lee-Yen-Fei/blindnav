@@ -1,11 +1,14 @@
+torch==2.4.1
 streamlit==1.38.0
 requests==2.32.3
 Pillow==10.4.0
-opencv-python==4.10.0.84
+setuptools==75.1.0
+opencv-python-headless==4.10.0.84
 python-dotenv==1.0.1
 SpeechRecognition==3.10.4
-torch==2.4.1
 numpy==2.1.2
 ultralytics==8.3.9
 openai==1.51.2
 pyttsx3==2.98
+pyaudio==0.2.14
+lapx==0.5.11
