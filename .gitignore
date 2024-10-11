@@ -1,0 +1,21 @@
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+venv/
+env/
+
+# Environment variables
+.env
+
+# IDE specific files
+.idea/
+.vscode/
+
+# Other
+*.log
+
+audio.wav
+output_video.mp4
+yolo10s.pt
