@@ -9,7 +9,7 @@ import torch
 import numpy as np
 from ultralytics import YOLO  # YOLOv10 import
 from openai import OpenAI
-import pyttsx3
+from gtts import gTTS  # Import gTTS for text-to-speech
 
 # Load environment variables
 load_dotenv()
@@ -31,7 +31,6 @@ if not api_key:
     st.error("API key is not set in the environment variables.")
 
 # Function to convert speech to text using OpenAI Whisper API
-# Function to convert speech to text using OpenAI Whisper API with a URL
 def speech_to_text_via_url(audio_url):
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -42,7 +41,7 @@ def speech_to_text_via_url(audio_url):
     url = f"{base_url}/stt"  # Ensure this endpoint is correct
 
     data = {
-        "url": audio_url,  # Pass the URL of the audio file
+        "url": audio_url,
         "model": "#g1_whisper-large",  # Ensure the correct model name
     }
 
@@ -59,11 +58,12 @@ def speech_to_text_via_url(audio_url):
         st.write("[transcription]", transcript)
         return transcript
 
-# Text-to-Speech (Offline with pyttsx3)
-def text_to_speech_pyttsx3(text):
-    engine = pyttsx3.init()
-    engine.say(text)
-    engine.runAndWait()
+# Text-to-Speech function using gTTS
+def text_to_speech_gtts(text):
+    tts = gTTS(text=text, lang='en')
+    audio_file = "output.mp3"
+    tts.save(audio_file)  # Save the audio file
+    return audio_file  # Return the file path
 
 def resize_image(image, target_size):
     return cv2.resize(image, target_size, interpolation=cv2.INTER_AREA)
@@ -186,6 +186,7 @@ if audio_url:
 
         if analysis:
             st.write(f"Analysis: {analysis}")
-            text_to_speech_pyttsx3(analysis)
+            audio_path = text_to_speech_gtts(analysis)  # Convert analysis to speech
+            st.audio(audio_path, format='audio/mp3')  # Play the generated audio
 else:
     st.error("Please enter an audio URL.")
